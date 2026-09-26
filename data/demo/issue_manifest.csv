@@ -1,0 +1,9 @@
+dataset,issue_type,batch_id,time_hr,column,original_value,injected_value
+process_timeseries,missing_value,B003,40,DO,42.7725,missing
+process_timeseries,missing_value,B018,100,sensor_glucose,5.72725,missing
+offline_assays,missing_value,B009,72,lactate,1.4851,missing
+process_timeseries,duplicate_record,B005,48,all,one row,two identical rows
+offline_assays,invalid_batch_reference,B010,120,batch_id,B010,B999
+process_timeseries,time_gap,B020,160,all,row present,row removed
+process_timeseries,time_gap,B020,164,all,row present,row removed
+process_timeseries,time_gap,B020,168,all,row present,row removed
