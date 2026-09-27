@@ -4,7 +4,7 @@ A Streamlit web app for integrating, exploring, analyzing, and explaining biopro
 
 ## Current milestone
 
-Milestone 5 adds batch-level Pearson correlations, media-group comparisons, Welch/classical ANOVA, effect sizes, confidence intervals, and assumption diagnostics. Earlier data preparation and exploration workflows remain available. Scientific AI Copilot is the next planned feature.
+Milestone 6 adds final-quality prediction with XGBoost, random forest, a neural network, and Bayesian additive regression trees (BART), plus Bayesian structural time-series forecasting (BSTS). Earlier preparation, exploration, and statistics workflows remain available. Scientific AI Copilot is the next planned feature.
 
 ## Run locally with your existing uv environment
 
@@ -120,6 +120,50 @@ Missing values are excluded per analysis, without imputation. Tests are explorat
 
 Statistical calculations live in statistical_analysis.py and use SciPy. Checks include a hand-calculable ANOVA example (F = 13.5), batch grain, missing/constant/small inputs, and UI navigation. See the [SciPy ANOVA documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.f_oneway.html) and [Pearson correlation documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.pearsonr.html) for method assumptions.
 
+## Predictive Modeling & Forecasting walkthrough
+
+Prepare and apply the clean demo (or resolve blocking errors in the messy demo), then open **Predictive Modeling**. Models run only when you click their training buttons. Results are session-scoped and hidden as stale when input data or settings change. No models or uploaded data are written to shared disk.
+
+### Final-quality prediction
+
+1. Default target: final titer at hour 336, predicted from measurements through hour 168. Other targets are aggregation, purity, downstream recovery yield, and the glycosylation metric. The latter endpoints contain substantial random noise in this demo; poor scores are informative.
+2. Inspect the feature table. Metadata includes media, scale, and inoculation density. Process/assay features include means, minima, maxima, last observed values, and counts through the selected cutoff. Offline product titer, final-quality values, batch IDs, dates, lots, and operators are excluded from predictors.
+3. Select models and click **Run model comparison**. A mean baseline always runs. Ridge, random forest, XGBoost, and a small MLP neural network are selected by default. Select BART explicitly for Bayesian tree sampling.
+4. An 80/20 fixed batch split reserves 12 of the 60 demo batches. Identical three-fold CV splits operate within the remaining 48. Imputation, one-hot encoding, and scaling are fitted inside each training fold; unseen media categories are tolerated. The MLP also scales its target using training data only. There is no hyperparameter search.
+5. Compare fold-average RMSE, MAE, R², runtime, and improvement over the mean baseline. Fold SD is not a confidence interval. Out-of-fold plots and exports never include reserved test predictions. Model failures are reported rather than presented as successful fits.
+6. Choose a model using development results, then explicitly evaluate it on the reserved test set. Repeated test-set evaluation makes later scores exploratory. Download predictions, settings, split membership, and feature definitions.
+
+BART uses 20 trees, a Gaussian outcome likelihood, two sequential chains, and selectable 100/200/500 draws plus the same number of tuning iterations. Its mean-response interval is separate from the new-observation predictive interval. The app reports maximum R-hat and minimum bulk ESS across monitored variables, and flags R-hat above 1.05 or bulk ESS below 100. These diagnostic thresholds do not guarantee convergence or calibration. Short runs can fail diagnostics; estimates must then remain provisional.
+
+The interactive regression limit is 30–500 labeled batches. Missing targets are excluded, never imputed. Missing input measurements are imputed from training data only. Partial histories can still bias features. This estimates performance for similar batches, not future campaigns or unseen lots. The demo has only 60 independent runs, regardless of its number of sensor rows.
+
+BART remains off by default. If selected in the app, it runs in an isolated worker with a **60-second total cross-validation budget**, including worker startup. A timed-out run is terminated and omitted; completed results from other models remain available. Reserved-test BART evaluation has a separate 60-second limit. Temporary worker inputs/results are removed after execution. Direct Bayesian smoke checks can still run without the app comparison budget. BSTS forecasting is unchanged.
+
+### Within-batch BSTS forecasting
+
+1. Choose a batch and measurement. Sensor glucose is the default; sensor lactate, DO, and sparse offline product titer are also available.
+2. Choose a historical cutoff and 24/48/72-hour horizon. Both must align with the configured cadence. At least 12 sensor or 10 offline observations and 60% grid coverage are required. Offline titer at hour 168 has only eight observations, so choose a later cutoff. At most 200 historical grid points are supported interactively.
+3. Click **Run Bayesian forecast**. A PyMC/pymc-extras local level + trend model with observation noise fits only this batch's history. Missing grid points stay missing; observations are not interpolated. There are no seasonal terms, future regressors, or causal-impact claims.
+4. Inspect the forecast boundary, mean, 80%/95% predictive bands, runtime, and diagnostics. Gaussian forecasts can exceed physical bounds and are not silently clipped. Unexpected process shifts may invalidate extrapolation.
+5. **Run historical backtest** fits up to three earlier origins with nonoverlapping forecast windows, all ending by the selected cutoff. Histories overlap, so errors are not independent. Compare BSTS with persistence and linear drift. Scores, interval coverage, and widths are evaluated only at available future measurements and are reported by horizon as well as overall. Forecast scores are separate from the batch-quality leaderboard.
+
+BSTS standardizes history using historical observations only. Priors in standardized units: initial level/trend Normal(0, [2, 0.5]); level/trend innovation SD HalfNormal([0.2, 0.05]); measurement SD HalfNormal(0.5); initial state covariance 0.1 × identity. Two sequential Metropolis chains use selectable 100/200/500 draws and tuning iterations. These are transparent teaching defaults, not scientifically calibrated priors. The diagnostics include initial state and noise parameters.
+
+### Runtime and testing
+
+The Bayesian packages are imported lazily. PyTensor defaults to FAST_COMPILE with its Python linker to support this Windows environment without a C++ compiler; advanced users can override PYTENSOR_FLAGS before launch. Bayesian runs may take minutes, especially rolling backtests; CPU workers and sampling counts are bounded. Community Cloud deployment and resource limits still require testing on the actual host.
+
+Run the regular 25-test suite with the unittest command above. It checks previous milestones, cutoff leakage, batch splits, training-only preprocessing, model fitting, forecast grids, chronological backtests, and UI stale-result behavior. Forecast orchestration unit tests use a lightweight deterministic predictor; real Bayesian compatibility checks are separate:
+
+~~~powershell
+.\.venv\Scripts\python.exe bayesian_smoke.py
+.\.venv\Scripts\python.exe bayesian_smoke.py --demo
+~~~
+
+The first runs tiny BART/BSTS fits to verify output shapes and interval ordering, not inference quality. The second benchmarks real demo BART test predictions and a sensor forecast with 100 draws per chain, printing diagnostics and runtime. Code is split across modeling.py, bayesian_models.py, forecasting.py, and views/modeling.py.
+
+Measured locally on this Windows environment: the 100-draw demo BART test fit took about 9 seconds; the 43-point sensor BSTS fit and forecast took about 131 seconds. Both failed the sampling diagnostic thresholds at this budget, so their inference remains provisional. Longer runs may help but do not guarantee convergence. These measurements are not Community Cloud benchmarks. Use `python bayesian_smoke.py --edge` for tiny real fits with a missing sensor observation and sparse offline titer. Missing measurements are marginalized through the state-space model; raw observations remain missing and are not filled by future values.
+
 ## Roadmap
 
 1. **Foundation:** environment, entry point, navigation, and local launch.
@@ -127,9 +171,10 @@ Statistical calculations live in statistical_analysis.py and use SciPy. Checks i
 3. **Integration and quality:** uploads, validation, cleaning reports, and SQL joins.
 4. **Exploration:** interactive trends and batch comparisons.
 5. **Statistics:** correlations, media comparisons, and appropriate statistical tests.
-6. **AI explanations:** free OpenRouter models, evidence summaries, and text export.
-7. **Deployment:** Streamlit Community Cloud setup and end-to-end verification.
-8. **Advanced analytics:** PCA, predictive models, and anomaly investigation.
+6. **Predictive modeling and forecasting:** final-quality regressors, BART, BSTS, validation, and uncertainty.
+7. **AI explanations:** free OpenRouter models, evidence summaries, and text export.
+8. **Deployment:** Streamlit Community Cloud setup and end-to-end verification.
+9. **Advanced analytics:** PCA, deeper interpretation, and anomaly investigation.
 
 ## Future deployment and secrets
 

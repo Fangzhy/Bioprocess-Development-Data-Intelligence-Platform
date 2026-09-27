@@ -5,7 +5,7 @@ from data_generation import DATASETS, DEMO_DIR
 
 st.title("Bioprocess Development Data Intelligence")
 st.write("A workspace for integrating bioreactor data, comparing experimental batches, and explaining analytical findings.")
-st.info("Milestone 5: explore process trends, batch-level correlations, and media-group statistics.")
+st.info("Milestone 6: compare predictive models and forecast batch trajectories with Bayesian uncertainty.")
 st.subheader("From measurements to understanding")
 st.write("Load data → Check quality → Explore batches → Analyze results → Explain findings")
 
@@ -19,6 +19,7 @@ with right:
     st.subheader("Understand the results")
     st.write("Explore trends and statistical relationships, then request an AI explanation grounded in calculated results.")
     st.page_link("views/statistics.py", label="Statistical Analysis", icon=":material/analytics:")
+    st.page_link("views/modeling.py", label="Predictive Modeling & Forecasting", icon=":material/model_training:")
     st.page_link("views/copilot.py", label="Scientific AI Copilot", icon=":material/chat:")
 
 st.divider()
