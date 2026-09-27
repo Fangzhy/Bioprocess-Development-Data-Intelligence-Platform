@@ -5,7 +5,7 @@ from data_generation import DATASETS, DEMO_DIR
 
 st.title("Bioprocess Development Data Intelligence")
 st.write("A workspace for integrating bioreactor data, comparing experimental batches, and explaining analytical findings.")
-st.info("Milestone 6: compare predictive models and forecast batch trajectories with Bayesian uncertainty.")
+st.info("Milestone 7: explain computed results with the Scientific AI Copilot.")
 st.subheader("From measurements to understanding")
 st.write("Load data → Check quality → Explore batches → Analyze results → Explain findings")
 

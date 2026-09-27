@@ -4,7 +4,7 @@ A Streamlit web app for integrating, exploring, analyzing, and explaining biopro
 
 ## Current milestone
 
-Milestone 6 adds final-quality prediction with XGBoost, random forest, a neural network, and Bayesian additive regression trees (BART), plus Bayesian structural time-series forecasting (BSTS). Earlier preparation, exploration, and statistics workflows remain available. Scientific AI Copilot is the next planned feature.
+Milestone 7 adds a Scientific AI Copilot using a free OpenRouter model, evidence previews, session-level response reuse, and computed fallback summaries. Earlier preparation, statistics, predictive modeling, and Bayesian forecasting workflows remain available.
 
 ## Run locally with your existing uv environment
 
@@ -164,6 +164,26 @@ The first runs tiny BART/BSTS fits to verify output shapes and interval ordering
 
 Measured locally on this Windows environment: the 100-draw demo BART test fit took about 9 seconds; the 43-point sensor BSTS fit and forecast took about 131 seconds. Both failed the sampling diagnostic thresholds at this budget, so their inference remains provisional. Longer runs may help but do not guarantee convergence. These measurements are not Community Cloud benchmarks. Use `python bayesian_smoke.py --edge` for tiny real fits with a missing sensor observation and sparse offline titer. Missing measurements are marginalized through the state-space model; raw observations remain missing and are not filled by future values.
 
+## Scientific AI Copilot walkthrough
+
+1. Install updated requirements with the existing uv command above. Use the root .env (not views/.env), or Streamlit secrets, to configure OPEN_ROUTER_API (OPENROUTER_API_KEY is also accepted) and OPENROUTER_MODEL. See .env.example for names only; never commit credentials. Priority is Streamlit secrets, environment variables, then the root .env.
+2. Prepare and apply data, then open Scientific AI Copilot. Choose statistical explanation, model comparison, forecast explanation, or study summary.
+3. Review the exact JSON evidence and the explanation instructions. Statistical summaries are recomputed for full-run final titer by media and peak-VCD correlation; they are not copies of arbitrary selections from the Statistics page. Modeling and forecasting explanations use the latest completed results matching the applied data, with the settings recorded at completion. If results predate this milestone, rerun them to attach source/settings provenance.
+4. Click Generate AI explanation to send the previewed summary to OpenRouter and its model provider. Raw input tables are not sent. Summaries may contain media labels; inspect the preview before using uploaded data. The key is sent only in the authentication header to OpenRouter.
+5. Check the explanation against its evidence identifiers. Prompts constrain unsupported claims, but the app does not automatically prove every AI claim. AI text is displayed as plain text. Failed Bayesian diagnostics remain visible as a warning independent of the explanation.
+6. Download the explanation and evidence, or use the computed template summary without an API call. Up to ten explanations are reused within the session for identical evidence, instructions, and model. Stale explanations are hidden; there is no shared result cache.
+
+The default model is dots-studio/dots-3-note-preview:free. Each generation verifies that the configured model is listed with zero prompt/completion/request pricing, then sets zero-price provider caps. Only :free IDs or openrouter/free are accepted, with no automatic paid fallback. Free availability can change. Requests disable reasoning and allow 2,048 output tokens; empty or truncated responses are rejected. Connection/read timeouts are bounded, with at most one retry after two seconds for rate limits or transient gateway/service errors. Missing keys, unavailable models, and API failures leave the computed template available.
+
+Local .env files are not deployed. On Community Cloud, enter the same configuration names in app Secrets, for example:
+
+~~~toml
+OPEN_ROUTER_API = "your-key-here"
+OPENROUTER_MODEL = "dots-studio/dots-3-note-preview:free"
+~~~
+
+Copilot tests mock network requests and never use the local key. Run the full unittest suite for key precedence, free-only enforcement, retry/error behavior, incomplete responses, stale evidence, explicit generation, response reuse, and previous-milestone regression tests. Live smoke tests should send synthetic evidence only. Prompt grounding is a safeguard, not a guarantee of factual correctness.
+
 ## Roadmap
 
 1. **Foundation:** environment, entry point, navigation, and local launch.
@@ -180,7 +200,7 @@ Measured locally on this Windows environment: the 100-draw demo BART test fit to
 
 The planned Community Cloud entry point is app.py. Commit the app files and requirements.txt to GitHub, select the repository and branch in Community Cloud, and choose Python 3.13. Deployment is a later milestone.
 
-No API key is required yet. When OpenRouter is added, local credentials will go in the ignored .streamlit/secrets.toml; cloud credentials will go in Community Cloud's Secrets settings. Never commit API keys.
+Only AI generation requires an OpenRouter key. Local credentials can be stored in the ignored root .env or .streamlit/secrets.toml; cloud credentials belong in Community Cloud's Secrets settings. Computed analytics and template summaries work without a key. Never commit API keys.
 
 ## References
 
