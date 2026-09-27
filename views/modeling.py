@@ -51,7 +51,7 @@ def regression_tab(tables, schedule):
         try:
             with st.spinner('Training on development batches; the reserved test set is not scored here.'):
                 result = compare_models(tables, target, cutoff, models, draws, status.write)
-            st.session_state['ml_result'] = dict(key=key, result=result)
+            st.session_state['ml_result'] = dict(key=key, result=result, settings=settings, data_signature=fingerprint(tables, {}))
             st.session_state.pop('ml_test', None)
         except Exception as error:
             st.error(f'Model comparison failed: {error}')
@@ -118,7 +118,7 @@ def forecast_tab(tables, schedule):
         try:
             with st.spinner('Sampling structural model and forecasting…'):
                 result = forecast(tables, **config)
-            st.session_state['bsts_result'] = dict(key=key, result=result)
+            st.session_state['bsts_result'] = dict(key=key, result=result, settings=config, data_signature=fingerprint(tables, {}))
         except Exception as error:
             st.error(f'Forecast unavailable: {error}')
     saved = st.session_state.get('bsts_result')
