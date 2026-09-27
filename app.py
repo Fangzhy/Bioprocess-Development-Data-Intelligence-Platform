@@ -11,6 +11,7 @@ page = st.navigation([
     st.Page("views/integration.py", title="Data Integration & Quality", icon=":material/dataset:"),
     st.Page("views/explorer.py", title="Process Explorer", icon=":material/monitoring:"),
     st.Page("views/statistics.py", title="Statistical Analysis", icon=":material/analytics:"),
+    st.Page("views/modeling.py", title="Predictive Modeling", icon=":material/model_training:"),
     st.Page("views/copilot.py", title="Scientific AI Copilot", icon=":material/chat:"),
 ])
 page.run()
