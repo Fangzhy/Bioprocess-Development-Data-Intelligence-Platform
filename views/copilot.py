@@ -30,9 +30,9 @@ if (quality.severity == "error").any():
     st.stop()
 
 task = st.selectbox("Explanation task", ["Explain statistical results", "Compare predictive models",
-                                        "Explain a forecast", "Generate study summary"])
+                                        "Explain a forecast", "Explain an anomaly", "Generate study summary"])
 st.caption("Statistical explanations compute full-run final-titer/media comparisons and peak-VCD correlation for this cohort. Modeling explanations use the latest completed results matching these data, with their recorded settings.")
-saved = {name: st.session_state.get(name) for name in ("ml_result", "bsts_result")}
+saved = {name: st.session_state.get(name) for name in ("ml_result", "bsts_result", "anomaly_investigation")}
 evidence = build_evidence(tables, schedule, st.session_state.get("integration_source", "Uploaded files"),
                           task, saved, quality)
 payload = evidence_text(evidence)

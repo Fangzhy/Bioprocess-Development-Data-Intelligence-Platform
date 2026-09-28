@@ -100,6 +100,12 @@ def build_evidence(tables, schedule, source, task, saved=None, quality=None):
             add('Bayesian structural forecast', dict(settings=config, forecast=result['forecast'],
                 diagnostics=result['diagnostics'], seconds=result['seconds'],
                 limitations='Predictive intervals are model-dependent. No causal-impact analysis; unexpected shifts can invalidate extrapolation.'))
+    if task in ('Explain an anomaly', 'Generate study summary'):
+        entry = saved.get('anomaly_investigation')
+        if entry and entry.get('data_signature') == signature and entry['settings'].get('duration') == schedule['duration']:
+            add('PCA and batch anomaly investigation', dict(settings=entry['settings'], **entry['result']))
+        else:
+            add('Unavailable analysis', 'No current anomaly investigation; run PCA and select a batch/reference group first.')
     return clean_json(evidence)
 
 
