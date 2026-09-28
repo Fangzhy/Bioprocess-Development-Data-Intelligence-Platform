@@ -1,5 +1,5 @@
 ﻿# Bioprocess Development Data Intelligence Platform
-
+[Launch live demo](https://bioprocess-development-data-intelligence-platform.streamlit.app/) | [Cloud deployment guide](docs/deployment.md)
 A Streamlit web app for integrating, exploring, analyzing, and explaining bioprocess development data.
 
 ## Current milestone
@@ -184,6 +184,20 @@ OPENROUTER_MODEL = "dots-studio/dots-3-note-preview:free"
 
 Copilot tests mock network requests and never use the local key. Run the full unittest suite for key precedence, free-only enforcement, retry/error behavior, incomplete responses, stale evidence, explicit generation, response reuse, and previous-milestone regression tests. Live smoke tests should send synthetic evidence only. Prompt grounding is a safeguard, not a guarantee of factual correctness.
 
+## PCA and anomaly investigation
+
+After applying reviewed data, open **PCA & Anomalies**, select process features, and click **Run PCA and anomaly ranking**. Five full-run batch summaries are available: peak VCD, maximum offline lactate, mean DO, minimum sensor glucose, and pH sample SD. Final quality, batch identifiers, and hidden synthetic stress labels never enter the models.
+
+The workflow drops constant/all-missing features, excludes batches missing over half of the selected varying features, median-imputes remaining cells, and standardizes the cohort. At least five batches and two varying features are required. Preprocessing details and exclusions are visible. These are exploratory fits on the current cohort, not out-of-sample validation.
+
+Inspect PC1/PC2 scores, all explained-variance fractions, and component coefficients. Coefficients are on standardized variables; component signs are arbitrary. Isolation Forest uses all retained features and ranks negative score_samples values (higher means more unusual). Ranks are not failure probabilities or confirmed outliers.
+
+Select a batch and compare it with either other analyzed batches of the same media or all other analyzed batches. The chosen batch is excluded from references; at least three references are required. Deviations use original observed summaries, not imputed values. Zero reference variance, fewer than three observed references, or missing selected values yield blank standardized deviations. These deviations do not attribute the Isolation Forest score and do not establish root causes. References can themselves contain unusual runs.
+
+Download scores, coefficients, variance fractions, preprocessing details, and deviations. The copilot's **Explain an anomaly** task uses the selected investigation and records its feature/reference settings. Changing feature selection invalidates the saved investigation; a changed dataset or run duration prevents the copilot from reusing it. Final quality is displayed separately for interpretation.
+
+No extra dependencies are needed. The regression suite includes PCA orthogonality/variance checks, determinism, outcome exclusion, missing/constant features, reference calculations, and UI/copilot provenance checks.
+
 ## Roadmap
 
 1. **Foundation:** environment, entry point, navigation, and local launch.
@@ -196,9 +210,9 @@ Copilot tests mock network requests and never use the local key. Run the full un
 8. **Deployment:** Streamlit Community Cloud setup and end-to-end verification.
 9. **Advanced analytics:** PCA, deeper interpretation, and anomaly investigation.
 
-## Future deployment and secrets
+## Deployment and secrets
 
-The planned Community Cloud entry point is app.py. Commit the app files and requirements.txt to GitHub, select the repository and branch in Community Cloud, and choose Python 3.13. Deployment is a later milestone.
+The Community Cloud entry point is app.py, using Python 3.13. Deployment files and an Ubuntu regression workflow are included. Follow the [step-by-step deployment guide](docs/deployment.md) for this repository's dev branch, GitHub push commands, cloud secrets, and hosted verification. The hosted application still requires deployment and runtime verification.
 
 Only AI generation requires an OpenRouter key. Local credentials can be stored in the ignored root .env or .streamlit/secrets.toml; cloud credentials belong in Community Cloud's Secrets settings. Computed analytics and template summaries work without a key. Never commit API keys.
 

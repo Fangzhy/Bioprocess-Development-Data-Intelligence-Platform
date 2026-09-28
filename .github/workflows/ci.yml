@@ -1,0 +1,45 @@
+name: Python regression checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      PYTENSOR_FLAGS: "cxx=,mode=FAST_COMPILE"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Check installed dependencies
+        run: python -m pip check
+      - name: Run regression suite (no live API calls)
+        run: python -m unittest discover -s tests -v
+      - name: Check Streamlit server startup
+        shell: bash
+        run: |
+          python -m streamlit run app.py --server.port=8501 > /tmp/streamlit.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:8501/_stcore/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/streamlit.log
+          exit 1
